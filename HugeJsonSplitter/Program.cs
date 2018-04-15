@@ -65,12 +65,14 @@ namespace HugeJsonSplitter
     {
       var fileCount = 0;
       var count = 0;
+      await reader.ReadLineAsync(); // Get rid of starting [
       while (!reader.EndOfStream)
       {
         var line = await reader.ReadLineAsync();
-        if (line == "[" || line == "]")
+        if (line == "]")
         {
-          continue;
+          queue.CompleteAdding();
+          return;
         }
 
         if (count == 0)
