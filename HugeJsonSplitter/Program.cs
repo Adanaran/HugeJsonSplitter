@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,25 +10,18 @@ namespace HugeJsonSplitter
 {
   internal class Program
   {
-    private const string PartName = "chunk{0}.json";
-
     public static async Task Main(string[] args)
     {
+      var stopwatch = Stopwatch.StartNew();
+
       var arguments = args.ToList();
       var lineCount = GetLineCount(arguments);
-
+      var outputDirectory = EnsureOutputDirectory(arguments);
       var inputFile = EnsureInputFile(arguments);
       if (inputFile == null)
       {
         return;
       }
-
-      var outputDirectory = EnsureOutputDirectory(arguments);
-
-      var queue = new BlockingCollection<string>();
-
-      var tasks = new List<Task>();
-      var stopwatch = Stopwatch.StartNew();
 
       if (inputFile.StartsWith("http", StringComparison.OrdinalIgnoreCase))
       {
@@ -41,7 +33,7 @@ namespace HugeJsonSplitter
             {
               using (var streamReader = new StreamReader(stream))
               {
-                await Chunk(streamReader, queue, tasks, outputDirectory, lineCount);
+                await Chunk(streamReader, outputDirectory, lineCount);
               }
             }
           }
@@ -51,77 +43,47 @@ namespace HugeJsonSplitter
       {
         using (var reader = File.OpenText(inputFile))
         {
-          await Chunk(reader, queue, tasks, outputDirectory, lineCount);
+          await Chunk(reader, outputDirectory, lineCount);
         }
       }
 
-      await Task.WhenAll(tasks);
       stopwatch.Stop();
-
       Console.WriteLine($"Chunking took: {stopwatch.Elapsed:g}");
     }
 
-    private static async Task Chunk(StreamReader reader, BlockingCollection<string> queue, List<Task> tasks, string outputDirectory, int lineCount)
+    private static async Task Chunk(StreamReader reader, string outputDirectory, int lineCount)
     {
-      var fileCount = 0;
-      var count = 0;
       await reader.ReadLineAsync(); // Get rid of starting [
+
+      var bodyWriter = new Writer(outputDirectory, "bodies", lineCount);
+      var starWriter = new Writer(outputDirectory, "stars", lineCount);
+      bodyWriter.Start();
+      starWriter.Start();
+
       while (!reader.EndOfStream)
       {
         var line = await reader.ReadLineAsync();
         if (line == "]")
         {
-          queue.CompleteAdding();
-          return;
+          // Reached end of file, signal we're done.
+          break;
         }
 
-        if (count == 0)
+        if (line.Contains("isScoopable"))
         {
-          var nextFileNumber = fileCount;
-          var nextFileQueue = queue;
-          tasks.Add(Task.Run(() => Write(nextFileQueue, outputDirectory, nextFileNumber)));
-        }
-
-        if (count >= lineCount)
-        {
-          if (line.EndsWith(','))
-          {
-            line = line.Substring(0, line.Length - 1);
-          }
-
-          queue.Add(line);
-          queue.CompleteAdding();
-
-          count = 0;
-          fileCount++;
-          queue = new BlockingCollection<string>();
+          starWriter.Add(line);
         }
         else
         {
-          queue.Add(line);
-          count++;
+          bodyWriter.Add(line);
         }
       }
+
+      await bodyWriter.End();
+      await starWriter.End();
     }
 
-    private static async void Write(BlockingCollection<string> queue, string outputDir, int number)
-    {
-      using (var streamWriter = File.CreateText(Path.Combine(outputDir, string.Format(PartName, number))))
-      {
-        await streamWriter.WriteLineAsync("[");
-        while (!queue.IsCompleted)
-        {
-          if (queue.TryTake(out var line))
-          {
-            await streamWriter.WriteLineAsync(line);
-          }
-        }
-
-        await streamWriter.WriteLineAsync("]");
-      }
-    }
-
-    private static int GetLineCount(List<string> arguments)
+    private static int GetLineCount(IList<string> arguments)
     {
       var linecountIndex = arguments.IndexOf("--linecount");
       if (linecountIndex == -1 || !int.TryParse(arguments[linecountIndex + 1], out var lineCount))
@@ -132,7 +94,7 @@ namespace HugeJsonSplitter
       return lineCount;
     }
 
-    private static string EnsureInputFile(List<string> arguments)
+    private static string EnsureInputFile(IList<string> arguments)
     {
       var inputIndex = arguments.IndexOf("--input");
       if (inputIndex == -1)
@@ -157,7 +119,7 @@ namespace HugeJsonSplitter
       return inputFile;
     }
 
-    private static string EnsureOutputDirectory(List<string> arguments)
+    private static string EnsureOutputDirectory(IList<string> arguments)
     {
       var outputIndex = arguments.IndexOf("--outputdir");
       var outputDir = outputIndex == -1 ? AppDomain.CurrentDomain.BaseDirectory : arguments[outputIndex + 1];
