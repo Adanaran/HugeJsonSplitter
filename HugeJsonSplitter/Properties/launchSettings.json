@@ -1,8 +1,7 @@
 {
   "profiles": {
     "HugeJsonSplitter": {
-      "commandName": "Project",
-      "commandLineArgs": "--linecount 100000 --input \"https://www.edsm.net/dump/bodies7days.json\" --outputdir \"./\""
+      "commandName": "Project"
     }
   }
 }
