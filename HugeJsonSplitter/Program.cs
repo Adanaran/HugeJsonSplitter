@@ -6,7 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace HugeJsonSplitter
 {
@@ -55,83 +55,34 @@ namespace HugeJsonSplitter
 
     private static async Task Chunk(StreamReader reader, string outputDirectory, int lineCount)
     {
-      await reader.ReadLineAsync(); // Get rid of starting [
-
-      var bodyWriter = new Writer(outputDirectory, "bodies", lineCount);
-      var starWriter = new Writer(outputDirectory, "stars", lineCount);
+      var bodyWriter = new Writer<Body>(outputDirectory, "bodies", lineCount);
+      var starWriter = new Writer<Star>(outputDirectory, "stars", lineCount);
       bodyWriter.Start();
       starWriter.Start();
-
 
       var jsonSerializer = new JsonSerializer();
       jsonSerializer.Converters.Add(new ElementTypeConverter());
       jsonSerializer.DefaultValueHandling = DefaultValueHandling.Populate;
-      while (!reader.EndOfStream)
+
+      using (var jsonTextReader = new JsonTextReader(reader))
       {
-        var line = await reader.ReadLineAsync();
-        if (line == "]")
+        while (await jsonTextReader.ReadAsync())
         {
-          // Reached end of file, signal we're done.
-          break;
-        }
-
-        if (line.EndsWith(','))
-        {
-          line = line.Substring(0, line.Length - 1);
-        }
-
-        var element = JsonConvert.DeserializeObject<Element>(line, new JsonSerializerSettings
-        {
-          Converters = new List<JsonConverter> { new ElementTypeConverter() },
-          DefaultValueHandling = DefaultValueHandling.Populate
-        });
-        switch (element)
-        {
-          case Body body:
-            bodyWriter.Add(body);
-            break;
-          case Star star:
-            starWriter.Add(star);
-            break;
+          if (jsonTextReader.TokenType == JsonToken.StartObject)
+          {
+            var element = jsonSerializer.Deserialize<Element>(jsonTextReader);
+            switch (element)
+            {
+              case Body body:
+                bodyWriter.Add(body);
+                break;
+              case Star star:
+                starWriter.Add(star);
+                break;
+            }
+          }
         }
       }
-
-      //using (var jsonTextReader = new JsonTextReader(reader))
-      //{
-      //  while (jsonTextReader.HasLineInfo() ) //!reader.EndOfStream)
-      //  {
-      //    var element = jsonSerializer.Deserialize<Element>(jsonTextReader);
-      //    switch (element)
-      //    {
-      //      case Body body:
-      //        bodyWriter.Add(body);
-      //        break;
-      //      case Star star:
-      //        starWriter.Add(star);
-      //        break;
-      //    }
-      //  }
-      //}
-
-
-      //while (!reader.EndOfStream)
-      //{
-      //  var line = await reader.ReadLineAsync();
-      //  if (line == "]")
-      //  {
-      //    // Reached end of file, signal we're done.
-      //    break;
-      //  }
-
-      //  if (line.Contains("isScoopable"))
-      //  {
-      //    starWriter.Add(line);
-      //  }
-      //  else
-      //  {
-      //    bodyWriter.Add(line);
-      //  }
-      //}
 
       await bodyWriter.End();
       await starWriter.End();
@@ -186,4 +137,5 @@ namespace HugeJsonSplitter
       return outputDir;
     }
   }
+  
 }

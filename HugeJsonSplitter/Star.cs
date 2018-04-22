@@ -1,33 +1,55 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace HugeJsonSplitter
 {
   public class Star : Element
   {
+    private const string PropertyNameIsmainstar = "isMainStar";
+    private const string PropertyNameIsscoopable = "isScoopable";
+    private const string PropertyNameAge = "age";
+    private const string PropertyNameLuminosity = "luminosity";
+    private const string PropertyNameAbsolutemagnitude = "absoluteMagnitude";
+    private const string PropertyNameSolarmasses = "solarMasses";
+    private const string PropertyNameSolarradius = "solarRadius";
+    private const string PropertyNameBelts = "belts";
 
-    [JsonProperty("isMainStar")]
+    [JsonProperty(PropertyNameIsmainstar)]
     public bool IsMainStar { get; set; }
 
-    [JsonProperty("isScoopable")]
+    [JsonProperty(PropertyNameIsscoopable)]
     public bool IsScoopable { get; set; }
 
-    [JsonProperty("age")]
+    [JsonProperty(PropertyNameAge)]
     public long? Age { get; set; }
 
-    [JsonProperty("luminosity")]
+    [JsonProperty(PropertyNameLuminosity)]
     public string Luminosity { get; set; }
 
-    [JsonProperty("absoluteMagnitude")]
+    [JsonProperty(PropertyNameAbsolutemagnitude)]
     public float? AbsoluteMagnitude { get; set; }
 
-    [JsonProperty("solarMasses")]
+    [JsonProperty(PropertyNameSolarmasses)]
     public float? SolarMasses { get; set; }
 
-    [JsonProperty("solarRadius")]
+    [JsonProperty(PropertyNameSolarradius)]
     public float? SolarRadius { get; set; }
 
-    [JsonProperty("belts")]
-    public object Belts { get; set; }
+    [JsonProperty(PropertyNameBelts)]
+    public Dictionary<string, string>[] Belts { get; set; }
 
+    protected override async Task WritePropertiesTo(JsonTextWriter writer)
+    {
+      await base.WritePropertiesTo(writer);
+      await WriteProperty(writer, PropertyNameIsmainstar, IsMainStar);
+      await WriteProperty(writer, PropertyNameIsscoopable, IsScoopable);
+      await WriteProperty(writer, PropertyNameAge, Age);
+      await WriteProperty(writer, PropertyNameLuminosity, Luminosity);
+      await WriteProperty(writer, PropertyNameAbsolutemagnitude, AbsoluteMagnitude);
+      await WriteProperty(writer, PropertyNameSolarmasses, SolarMasses);
+      await WriteProperty(writer, PropertyNameSolarradius, SolarRadius);
+      await WriteProperty(writer, PropertyNameBelts, Belts);
+    }
   }
 }

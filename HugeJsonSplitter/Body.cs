@@ -1,31 +1,55 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace HugeJsonSplitter
 {
   public class Body : Element
   {
-    [JsonProperty("isLandable")]
+    public const string PropertyNameIslandable = "isLandable";
+    private const string PropertyNameGravity = "gravity";
+    private const string PropertyNameEarthmasses = "earthMasses";
+    private const string PropertyNameRadius = "radius";
+    private const string PropertyNameSurfacepressure = "surfacePressure";
+    private const string PropertyNameAtmospherecomposition = "atmosphereComposition";
+    private const string PropertyNameRings = "rings";
+    private const string PropertyNameMaterials = "materials";
+
+    [JsonProperty(PropertyNameIslandable)]
     public bool? IsLandable { get; set; }
 
-    [JsonProperty("gravity")]
+    [JsonProperty(PropertyNameGravity)]
     public float? Gravity { get; set; }
 
-    [JsonProperty("earthMasses")]
+    [JsonProperty(PropertyNameEarthmasses)]
     public float? EarthMasses { get; set; }
 
-    [JsonProperty("radius")]
+    [JsonProperty(PropertyNameRadius)]
     public float? Radius { get; set; }
 
-    [JsonProperty("surfacePressure")]
+    [JsonProperty(PropertyNameSurfacepressure)]
     public float? SurfacePressure { get; set; }
 
-    [JsonProperty("atmosphereComposition")]
-    public object AtmosphereComposition { get; set; }
+    [JsonProperty(PropertyNameAtmospherecomposition)]
+    public Dictionary<string, float> AtmosphereComposition { get; set; }
 
-    [JsonProperty("rings")]
-    public object Rings { get; set; }
+    [JsonProperty(PropertyNameRings)]
+    public Dictionary<string, string>[] Rings { get; set; }
 
-    [JsonProperty("materials")]
-    public object Materials { get; set; }
+    [JsonProperty(PropertyNameMaterials)]
+    public Dictionary<string, float> Materials { get; set; }
+
+    protected override async Task WritePropertiesTo(JsonTextWriter writer)
+    {
+      await base.WritePropertiesTo(writer);
+      await WriteProperty(writer, PropertyNameIslandable, IsLandable);
+      await WriteProperty(writer, PropertyNameGravity, Gravity);
+      await WriteProperty(writer, PropertyNameEarthmasses, EarthMasses);
+      await WriteProperty(writer, PropertyNameRadius, Radius);
+      await WriteProperty(writer, PropertyNameSurfacepressure, SurfacePressure);
+      await WriteProperty(writer, PropertyNameAtmospherecomposition, AtmosphereComposition);
+      await WriteProperty(writer, PropertyNameRings, Rings);
+      await WriteProperty(writer, PropertyNameMaterials, Materials);
+    }
   }
 }

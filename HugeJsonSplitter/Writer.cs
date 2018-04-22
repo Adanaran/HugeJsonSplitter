@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace HugeJsonSplitter
 {
-  public class Writer
+  public class Writer<TElement>
+    where TElement : Element
   {
     private readonly string outputDir;
     private readonly string fileName;
@@ -16,7 +18,7 @@ namespace HugeJsonSplitter
     private int lineCount;
     private int partCount = -1;
 
-    private BlockingCollection<string> dataToWrite;
+    private BlockingCollection<TElement> dataToWrite;
 
     public Writer(string outputDir, string fileName, int maxLineCount)
     {
@@ -29,40 +31,22 @@ namespace HugeJsonSplitter
     public void Start()
     {
       partCount++;
-      dataToWrite = new BlockingCollection<string>();
+      dataToWrite = new BlockingCollection<TElement>();
       var current = dataToWrite;
       tasks.Add(Task.Run(() => Write(current)));
     }
 
-    public void Add(string value)
+    public void Add(TElement element)
     {
+      dataToWrite.Add(element);
       if (lineCount >= maxLineCount)
       {
-        dataToWrite.Add(value.Substring(0, value.Length - 1));
         dataToWrite.CompleteAdding();
         lineCount = 0;
         Start();
       }
       else
       {
-        dataToWrite.Add(value);
-        lineCount++;
-      }
-    }
-
-    public void Add(Element element)
-    {
-      var elementsToWrite = element.ToString();
-      if (lineCount >= maxLineCount)
-      {
-        dataToWrite.Add(elementsToWrite);
-        dataToWrite.CompleteAdding();
-        lineCount = 0;
-        Start();
-      }
-      else
-      {
-        dataToWrite.Add(elementsToWrite + ",");
         lineCount++;
       }
     }
@@ -73,20 +57,24 @@ namespace HugeJsonSplitter
       await Task.WhenAll(tasks);
     }
 
-    private async void Write(BlockingCollection<string> queue)
+    private async void Write(BlockingCollection<TElement> queue)
     {
       using (var streamWriter = File.CreateText(Path.Combine(outputDir, string.Format("{0}{1}.json", fileName, partCount))))
       {
-        await streamWriter.WriteLineAsync("[");
-        while (!queue.IsCompleted)
+        using (var jsonTextWriter = new JsonTextWriter(streamWriter))
         {
-          if (queue.TryTake(out var line))
+          jsonTextWriter.Formatting = Formatting.Indented;
+          await jsonTextWriter.WriteStartArrayAsync();
+          while (!queue.IsCompleted)
           {
-            await streamWriter.WriteLineAsync(line);
+            if (queue.TryTake(out var element))
+            {
+              await element.WriteTo(jsonTextWriter);
+            }
           }
-        }
 
-        await streamWriter.WriteLineAsync("]");
+          await jsonTextWriter.WriteEndArrayAsync();
+        }
       }
     }
   }

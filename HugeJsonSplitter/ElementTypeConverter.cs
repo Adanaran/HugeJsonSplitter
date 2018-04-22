@@ -16,7 +16,15 @@ namespace HugeJsonSplitter
     public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
     {
       var jObject = JObject.Load(reader);
-      var elementType = (string) jObject.Property("type");
+
+      var typeProperty = jObject.Property(Element.PropertyNameType);
+      if (typeProperty == null)
+      {
+        WriteDebugInfo(jObject);
+        return null;
+      }
+
+      var elementType = typeProperty.Value.Value<string>();
 
       Type targetType;
       switch (elementType)
@@ -29,13 +37,30 @@ namespace HugeJsonSplitter
           targetType = typeof(Star);
           break;
         default:
-          throw new NotSupportedException($"Element type '{elementType}' is not supported.");
+          WriteDebugInfo(jObject);
+          return null;
       }
 
-      var target = Activator.CreateInstance(targetType);
-      serializer.Populate(jObject.CreateReader(), target);
+      try
+      {
 
-      return target;
+        var target = Activator.CreateInstance(targetType);
+        serializer.Populate(jObject.CreateReader(), target);
+
+        return target;
+      }
+      catch (Exception e)
+      {
+        WriteDebugInfo(jObject);
+        Console.WriteLine(e);
+      }
+
+      return null;
+    }
+
+    private static void WriteDebugInfo(JObject jObject)
+    {
+      Console.WriteLine(jObject.ToString());
     }
 
     public override bool CanConvert(Type objectType)

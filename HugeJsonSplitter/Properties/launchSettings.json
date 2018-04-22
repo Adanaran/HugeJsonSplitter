@@ -2,7 +2,7 @@
   "profiles": {
     "HugeJsonSplitter": {
       "commandName": "Project",
-      "commandLineArgs": "--linecount 100000 --input \"E:\\C# Projekte\\EDSM Data\\bodies7days.json\" --outputdir \"D:\\Dev\\HugeJsonSplitter\\HugeJsonSplitter\\bin\\Debug\\netcoreapp2.0\\recent\""
+      "commandLineArgs": "--linecount 100000 --input \"E:\\C# Projekte\\EDSM Data\\bodies.json\" --outputdir \"E:\\C# Projekte\\EDSM Data\\recent\""
     }
   }
 }
