@@ -50,6 +50,23 @@ namespace HugeJsonSplitter
       }
     }
 
+    public void Add(Element element)
+    {
+      var elementsToWrite = element.ToString();
+      if (lineCount >= maxLineCount)
+      {
+        dataToWrite.Add(elementsToWrite);
+        dataToWrite.CompleteAdding();
+        lineCount = 0;
+        Start();
+      }
+      else
+      {
+        dataToWrite.Add(elementsToWrite + ",");
+        lineCount++;
+      }
+    }
+
     public async Task End()
     {
       dataToWrite.CompleteAdding();
