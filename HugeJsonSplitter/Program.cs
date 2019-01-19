@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace HugeJsonSplitter
 {
@@ -57,8 +56,10 @@ namespace HugeJsonSplitter
     {
       var bodyWriter = new Writer<Body>(outputDirectory, "bodies", lineCount);
       var starWriter = new Writer<Star>(outputDirectory, "stars", lineCount);
+      var starSystemWriter = new Writer<StarSystemWithCoordinates>(outputDirectory, "systemsWithCoordinates", lineCount);
       bodyWriter.Start();
       starWriter.Start();
+      starSystemWriter.Start();
 
       var jsonSerializer = new JsonSerializer();
       jsonSerializer.Converters.Add(new ElementTypeConverter());
@@ -70,7 +71,7 @@ namespace HugeJsonSplitter
         {
           if (jsonTextReader.TokenType == JsonToken.StartObject)
           {
-            var element = jsonSerializer.Deserialize<Element>(jsonTextReader);
+            var element = jsonSerializer.Deserialize<JsonObjectBase>(jsonTextReader);
             switch (element)
             {
               case Body body:
@@ -79,11 +80,15 @@ namespace HugeJsonSplitter
               case Star star:
                 starWriter.Add(star);
                 break;
+              case StarSystemWithCoordinates starSystemWithCoordinates:
+                starSystemWriter.Add(starSystemWithCoordinates);
+                break;
             }
           }
         }
       }
 
+      await starSystemWriter.End();
       await bodyWriter.End();
       await starWriter.End();
     }
@@ -137,5 +142,4 @@ namespace HugeJsonSplitter
       return outputDir;
     }
   }
-  
 }

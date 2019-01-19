@@ -17,33 +17,15 @@ namespace HugeJsonSplitter
     {
       var jObject = JObject.Load(reader);
 
-      var typeProperty = jObject.Property(Element.PropertyNameType);
-      if (typeProperty == null)
+      var targetType = GetTargetType(jObject);
+      if (targetType == null)
       {
         WriteDebugInfo(jObject);
         return null;
       }
 
-      var elementType = typeProperty.Value.Value<string>();
-
-      Type targetType;
-      switch (elementType)
-      {
-        case "Planet":
-        case "Body":
-          targetType = typeof(Body);
-          break;
-        case "Star":
-          targetType = typeof(Star);
-          break;
-        default:
-          WriteDebugInfo(jObject);
-          return null;
-      }
-
       try
       {
-
         var target = Activator.CreateInstance(targetType);
         serializer.Populate(jObject.CreateReader(), target);
 
@@ -58,14 +40,48 @@ namespace HugeJsonSplitter
       return null;
     }
 
+    public override bool CanConvert(Type objectType)
+    {
+      return typeof(JsonObjectBase).IsAssignableFrom(objectType);
+    }
+
+    private static Type GetTargetType(JObject jObject)
+    {
+      var coordinatesProperty = jObject.Property(StarSystemWithCoordinates.PropertyNameCoordinates);
+      if (coordinatesProperty != null)
+      {
+        return typeof(StarSystemWithCoordinates);
+      }
+
+      var typeProperty = jObject.Property(Element.PropertyNameType);
+      if (typeProperty == null)
+      {
+        return null;
+      }
+
+      var elementType = typeProperty.Value.Value<string>();
+
+      Type targetType = null;
+      switch (elementType)
+      {
+        case "Planet":
+        case "Body":
+          targetType = typeof(Body);
+          break;
+        case "Star":
+          targetType = typeof(Star);
+          break;
+        default:
+          WriteDebugInfo(jObject);
+          break;
+      }
+
+      return targetType;
+    }
+
     private static void WriteDebugInfo(JObject jObject)
     {
       Console.WriteLine(jObject.ToString());
-    }
-
-    public override bool CanConvert(Type objectType)
-    {
-      return typeof(Element).IsAssignableFrom(objectType);
     }
   }
 }

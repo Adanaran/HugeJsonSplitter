@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 namespace HugeJsonSplitter
 {
   public class Writer<TElement>
-    where TElement : Element
+    where TElement : JsonObjectBase
   {
     private readonly string outputDir;
     private readonly string fileName;
@@ -59,7 +59,7 @@ namespace HugeJsonSplitter
 
     private async void Write(BlockingCollection<TElement> queue)
     {
-      using (var streamWriter = File.CreateText(Path.Combine(outputDir, string.Format("{0}{1}.json", fileName, partCount))))
+      using (var streamWriter = File.CreateText(Path.Combine(outputDir, $"{fileName}{partCount}.json")))
       {
         using (var jsonTextWriter = new JsonTextWriter(streamWriter))
         {

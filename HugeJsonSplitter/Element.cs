@@ -5,12 +5,9 @@ using Newtonsoft.Json;
 
 namespace HugeJsonSplitter
 {
-  public class Element
+  public class Element : JsonObjectBase
   {
-    private const string PropertyNameId = "id";
-    private const string PropertyNameId64 = "id64";
     private const string PropertyNameBodyId = "bodyId";
-    private const string PropertyNameName = "name";
     private const string PropertyNameDiscovery = "discovery";
     public const string PropertyNameType = "type";
     private const string PropertyNameSubtype = "subType";
@@ -34,17 +31,8 @@ namespace HugeJsonSplitter
     private const string PropertyNameSystemid64 = "systemId64";
     private const string PropertyNameSystemname = "systemName";
 
-    [JsonProperty(PropertyNameId)]
-    public long Id { get; set; }
-
-    [JsonProperty(PropertyNameId64)]
-    public long? Id64 { get; set; }
-
     [JsonProperty(PropertyNameBodyId)]
     public long? BodyId { get; set; }
-
-    [JsonProperty(PropertyNameName)]
-    public string Name { get; set; }
 
     [JsonProperty(PropertyNameDiscovery)]
     public Dictionary<string, string> Discovery { get; set; }
@@ -112,18 +100,9 @@ namespace HugeJsonSplitter
     [JsonProperty(PropertyNameSystemname)]
     public string SystemName { get; set; }
 
-    public async Task WriteTo(JsonTextWriter writer)
+    protected override async Task WritePropertiesTo(JsonTextWriter writer)
     {
-      await writer.WriteStartObjectAsync();
-      await WritePropertiesTo(writer);
-      await writer.WriteEndObjectAsync();
-    }
-
-    protected virtual async Task WritePropertiesTo(JsonTextWriter writer)
-    {
-      await WriteProperty(writer, PropertyNameId, Id);
-      await WriteProperty(writer, PropertyNameId64, Id64);
-      await WriteProperty(writer, PropertyNameName, Name);
+      await base.WritePropertiesTo(writer);
       await WriteProperty(writer, PropertyNameDiscovery, Discovery);
       await WriteProperty(writer, PropertyNameType, Type);
       await WriteProperty(writer, PropertyNameSubtype, SubType);
@@ -145,54 +124,6 @@ namespace HugeJsonSplitter
       await WriteProperty(writer, PropertyNameSystemid, SystemId);
       await WriteProperty(writer, PropertyNameSystemid64, SystemId64);
       await WriteProperty(writer, PropertyNameSystemname, SystemName);
-    }
-
-    protected static async Task WriteProperty<TValue>(JsonTextWriter writer, string propertyName, TValue value)
-    {
-      await writer.WritePropertyNameAsync(propertyName);
-      await writer.WriteValueAsync(value);
-    }
-
-    protected static async Task WriteProperty<TValue>(JsonTextWriter writer, string propertyName, Dictionary<string, TValue> values)
-    {
-      await writer.WritePropertyNameAsync(propertyName);
-      if (values == null)
-      {
-        await writer.WriteNullAsync();
-        return;
-      }
-
-      await writer.WriteStartObjectAsync();
-      foreach (var (name, value) in values)
-      {
-        await WriteProperty(writer, name, value);
-      }
-
-      await writer.WriteEndObjectAsync();
-    }
-
-    protected static async Task WriteProperty<TValue>(JsonTextWriter writer, string propertyName, Dictionary<string, TValue>[] values)
-    {
-      await writer.WritePropertyNameAsync(propertyName);
-      if (values == null)
-      {
-        await writer.WriteNullAsync();
-        return;
-      }
-
-      await writer.WriteStartArrayAsync();
-      foreach (var dictionary in values)
-      {
-        await writer.WriteStartObjectAsync();
-        foreach (var (name, value) in dictionary)
-        {
-          await WriteProperty(writer, name, value);
-        }
-
-        await writer.WriteEndObjectAsync();
-      }
-
-      await writer.WriteEndArrayAsync();
     }
   }
 }
