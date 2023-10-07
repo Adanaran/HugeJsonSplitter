@@ -45,6 +45,13 @@ internal class Program
       using var streamReader = new StreamReader(gzipStream);
       await Chunk(streamReader, outputDirectory, lineCount, outputType);
     }
+    else if(inputFile.EndsWith(".gz"))
+    {
+      using var reader = File.OpenRead(inputFile);
+      using var gzipStream = new GZipStream(reader, CompressionMode.Decompress);
+      using var streamReader = new StreamReader(gzipStream);
+      await Chunk(streamReader, outputDirectory, lineCount, outputType);
+    }
     else
     {
       using var reader = File.OpenText(inputFile);
