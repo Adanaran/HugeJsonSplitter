@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -27,12 +28,21 @@ internal class Program
       return;
     }
 
-    if (inputFile.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+    if (inputFile.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&  !inputFile.EndsWith(".gz"))
     {
       using var client = new HttpClient();
       using var response = await client.GetAsync(inputFile, HttpCompletionOption.ResponseHeadersRead);
       using var stream = await response.Content.ReadAsStreamAsync();
       using var streamReader = new StreamReader(stream);
+      await Chunk(streamReader, outputDirectory, lineCount, outputType);
+    }
+    else if (inputFile.StartsWith("http", StringComparison.OrdinalIgnoreCase) && inputFile.EndsWith(".gz"))
+    {
+      using var client = new HttpClient();
+      using var response = await client.GetAsync(inputFile, HttpCompletionOption.ResponseHeadersRead);
+      using var stream = await response.Content.ReadAsStreamAsync();
+      using var gzipStream = new GZipStream(stream, CompressionMode.Decompress);
+      using var streamReader = new StreamReader(gzipStream);
       await Chunk(streamReader, outputDirectory, lineCount, outputType);
     }
     else
