@@ -2,7 +2,7 @@
   "profiles": {
     "HugeJsonSplitter": {
       "commandName": "Project",
-      "commandLineArgs": "--linecount 100000 --input \"D:\\systemsWithCoordinates.json\" --outputdir \"D:\\chunked\""
+      "commandLineArgs": "--linecount 100000 --input \"D:\\galaxy_1day.json\" --outputdir \"D:\\chunked\" --outputtype Csv"
     }
   }
 }

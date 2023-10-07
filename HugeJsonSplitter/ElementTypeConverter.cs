@@ -1,87 +1,95 @@
 ﻿using System;
+using HugeJsonSplitter.Models.SystemsApi;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace HugeJsonSplitter
+namespace HugeJsonSplitter;
+
+public class ElementTypeConverter : JsonConverter
 {
-  public class ElementTypeConverter : JsonConverter
+  public override bool CanWrite => false;
+
+  public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
   {
-    public override bool CanWrite => false;
+    throw new NotSupportedException();
+  }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+  public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+  {
+    var jObject = JObject.Load(reader);
+
+    var targetType = GetTargetType(jObject);
+    if (targetType == null)
     {
-      throw new NotSupportedException();
-    }
-
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-    {
-      var jObject = JObject.Load(reader);
-
-      var targetType = GetTargetType(jObject);
-      if (targetType == null)
-      {
-        WriteDebugInfo(jObject);
-        return null;
-      }
-
-      try
-      {
-        var target = Activator.CreateInstance(targetType);
-        serializer.Populate(jObject.CreateReader(), target);
-
-        return target;
-      }
-      catch (Exception e)
-      {
-        WriteDebugInfo(jObject);
-        Console.WriteLine(e);
-      }
-
+      WriteDebugInfo(jObject);
       return null;
     }
 
-    public override bool CanConvert(Type objectType)
+    if (targetType == typeof(int))
     {
-      return typeof(JsonObjectBase).IsAssignableFrom(objectType);
+      return null;
     }
 
-    private static Type GetTargetType(JObject jObject)
+    try
     {
-      var coordinatesProperty = jObject.Property(StarSystemWithCoordinates.PropertyNameCoordinates);
-      if (coordinatesProperty != null)
-      {
-        return typeof(StarSystemWithCoordinates);
-      }
+      var target = Activator.CreateInstance(targetType);
+      serializer.Populate(jObject.CreateReader(), target);
 
-      var typeProperty = jObject.Property(Element.PropertyNameType);
-      if (typeProperty == null)
-      {
-        return null;
-      }
-
-      var elementType = typeProperty.Value.Value<string>();
-
-      Type targetType = null;
-      switch (elementType)
-      {
-        case "Planet":
-        case "Body":
-          targetType = typeof(Body);
-          break;
-        case "Star":
-          targetType = typeof(Star);
-          break;
-        default:
-          WriteDebugInfo(jObject);
-          break;
-      }
-
-      return targetType;
+      return target;
+    }
+    catch (Exception e)
+    {
+      WriteDebugInfo(jObject);
+      Console.WriteLine(e);
     }
 
-    private static void WriteDebugInfo(JObject jObject)
+    return null;
+  }
+
+  public override bool CanConvert(Type objectType)
+  {
+    return typeof(SystemsApiModelBase).IsAssignableFrom(objectType);
+  }
+
+  private static Type GetTargetType(JObject jObject)
+  {
+    var coordinatesProperty = jObject.Property(Models.SystemsApi.System.PropertyNameCoordinates);
+    if (coordinatesProperty != null)
     {
-      Console.WriteLine(jObject.ToString());
+      return typeof(Models.SystemsApi.System);
     }
+
+    var typeProperty = jObject.Property(Element.PropertyNameType);
+    if (typeProperty == null)
+    {
+      return null;
+    }
+
+    var elementType = typeProperty.Value.Value<string>();
+
+    Type targetType = null;
+    switch (elementType)
+    {
+      case "Planet":
+      case "Body":
+        targetType = typeof(Body);
+        break;
+      case "Star":
+        targetType = typeof(Star);
+        break;
+      case "Barycentre":
+        targetType = typeof(int);
+        break;
+      default:
+        WriteDebugInfo(jObject);
+        break;
+    }
+
+    return targetType;
+  }
+
+  private static void WriteDebugInfo(JObject jObject)
+  {
+    Console.WriteLine(jObject.ToString());
   }
 }
